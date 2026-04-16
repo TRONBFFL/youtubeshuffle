@@ -12,24 +12,30 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
   const [url, setUrl] = useState('');
 
   const extractPlaylistId = (input: string): string | null => {
-    // Handle direct playlist ID
-    if (input.length === 34 && !input.includes('/') && !input.includes('?')) {
-      return input;
-    }
-
-    // Handle full YouTube URL
+    const trimmed = input.trim();
+    // Try to parse as a URL first
     try {
-      const urlObj = new URL(input);
-      const params = new URLSearchParams(urlObj.search);
-      return params.get('list');
+      const urlObj = new URL(trimmed);
+      const listParam = urlObj.searchParams.get('list');
+      return listParam ? listParam.trim() : null;
     } catch {
-      return null;
+      // Not a URL — treat the whole input as a direct playlist ID
+      return trimmed.length > 0 ? trimmed : null;
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const playlistId = extractPlaylistId(url);
+    if (playlistId) {
+      onPlaylistLoad(playlistId);
+    }
+  };
+
+  const handleExample = () => {
+    const exampleUrl = 'https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP9';
+    setUrl(exampleUrl);
+    const playlistId = extractPlaylistId(exampleUrl);
     if (playlistId) {
       onPlaylistLoad(playlistId);
     }
@@ -54,8 +60,9 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
         Example:{' '}
         <button
           type="button"
-          onClick={() => setUrl('https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP9')}
+          onClick={handleExample}
           className="text-primary hover:underline"
+          disabled={isLoading}
         >
           https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP9
         </button>

@@ -1,6 +1,6 @@
 import { Video, PlaylistData } from '../types';
 
-const API_KEY: string = (import.meta as any).env?.VITE_YOUTUBE_API_KEY ?? '';
+const API_KEY: string = ((import.meta as any).env?.VITE_YOUTUBE_API_KEY ?? '').trim();
 
 export async function fetchPlaylistVideos(playlistId: string): Promise<Video[]> {
   const videos: Video[] = [];
@@ -37,7 +37,7 @@ export async function fetchPlaylistVideos(playlistId: string): Promise<Video[]> 
 
       const data: PlaylistData = await response.json();
 
-      const validItems = data.items.filter(
+      const validItems = (data.items ?? []).filter(
         (item) =>
           item.snippet?.resourceId?.videoId &&
           item.snippet.title !== 'Deleted video' &&
