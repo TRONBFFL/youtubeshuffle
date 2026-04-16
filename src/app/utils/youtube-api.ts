@@ -1,8 +1,6 @@
 import { Video, PlaylistData } from '../types';
 
-// Replace with your actual YouTube Data API v3 key
-// Get one at: https://console.cloud.google.com/apis/credentials
-const API_KEY = 'YOUR_YOUTUBE_API_KEY_HERE';
+const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY ?? '';
 
 export async function fetchPlaylistVideos(playlistId: string): Promise<Video[]> {
   const videos: Video[] = [];
@@ -12,7 +10,7 @@ export async function fetchPlaylistVideos(playlistId: string): Promise<Video[]> 
   // In production, you would make actual API calls to YouTube Data API v3
   
   // Mock data for demonstration
-  if (API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') {
+  if (!API_KEY) {
     // Return mock data when no API key is configured
     return generateMockVideos(20);
   }
@@ -87,10 +85,35 @@ function generateMockVideos(count: number): Video[] {
   }));
 }
 
+/**
+ * Mock Quantum Random Number Generator
+ * Combines Web Crypto API entropy with high-resolution timing noise
+ * to simulate quantum superposition collapse, producing values in [0, 1)
+ */
+function quantumRandom(): number {
+  // Pull 4 cryptographically secure random 32-bit integers
+  const cryptoBuffer = new Uint32Array(4);
+  crypto.getRandomValues(cryptoBuffer);
+
+  // Layer in sub-millisecond timing entropy (simulates environmental quantum noise)
+  const timingNoise = Math.floor((performance.now() % 1) * 0xFFFFFFFF);
+
+  // XOR-mix all entropy sources together (avalanche effect)
+  const mixed =
+    cryptoBuffer[0] ^
+    (cryptoBuffer[1] >>> 8) ^
+    (cryptoBuffer[2] >>> 16) ^
+    (cryptoBuffer[3] >>> 24) ^
+    timingNoise;
+
+  // Normalize to [0, 1)
+  return (mixed >>> 0) / 0x100000000;
+}
+
 export function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(quantumRandom() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
