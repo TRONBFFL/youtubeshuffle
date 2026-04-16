@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PlaylistInput } from './components/playlist-input';
-import { YouTubePlayer } from './components/youtube-player';
+import { YouTubePlayer, YouTubePlayerHandle } from './components/youtube-player';
 import { VideoQueue } from './components/video-queue';
 import { PlayerControls } from './components/player-controls';
 import { ErrorBoundary } from './components/error-boundary';
@@ -13,8 +13,15 @@ export default function App() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isCasting, setIsCasting] = useState(false);
   const [presentationConnection, setPresentationConnection] = useState<any>(null);
+  const playerRef = useRef<YouTubePlayerHandle>(null);
+  const castSupported = typeof window !== 'undefined' && 'PresentationRequest' in window;
+
+  const handleTogglePlay = () => {
+    playerRef.current?.togglePlay();
+  };
 
   const handlePlaylistLoad = async (playlistId: string) => {
     setIsLoading(true);
@@ -180,9 +187,11 @@ export default function App() {
               </div>
               
               <YouTubePlayer
+                ref={playerRef}
                 videoId={currentVideo.id}
                 onVideoEnd={handleVideoEnd}
-                onReady={() => {}}
+                onReady={() => setIsPlaying(true)}
+                onPlayingChange={setIsPlaying}
               />
               
               <PlayerControls
@@ -190,8 +199,11 @@ export default function App() {
                 onNext={handleNext}
                 onReshuffle={handleReshuffle}
                 onCast={handleCast}
+                onTogglePlay={handleTogglePlay}
                 hasPlaylist={videos.length > 0}
                 isCasting={isCasting}
+                isPlaying={isPlaying}
+                castSupported={castSupported}
               />
             </div>
 
