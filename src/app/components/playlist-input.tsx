@@ -33,13 +33,10 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
   };
 
   const handleExample = () => {
-    const exampleUrl = 'https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP95rvObD7pXV4gKzXL2';
-    setUrl(exampleUrl);
-    const playlistId = extractPlaylistId(exampleUrl);
-    if (playlistId) {
-      onPlaylistLoad(playlistId);
-    }
+    setUrl('https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP95rvObD7pXV4gKzXL2');
   };
+
+  const playlistId = extractPlaylistId(url);
 
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-4">
@@ -56,25 +53,24 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
           className="w-full"
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Example:{' '}
-        <button
-          type="button"
-          onClick={handleExample}
-          className="text-xs text-primary hover:underline break-all"
-          disabled={isLoading}
-        >
-          https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP95rvObD7pXV4gKzXL2
-        </button>
-      </p>
-      <Button 
-        type="submit" 
-        disabled={!url || isLoading}
-        className="w-full"
+      <button
+        type="button"
+        onClick={handleExample}
+        disabled={isLoading}
+        className="text-xs text-muted-foreground hover:text-primary hover:underline"
       >
-        <Shuffle className="mr-2 h-4 w-4" />
-        {isLoading ? 'Loading...' : 'Load & Shuffle Playlist'}
-      </Button>
+        Load example playlist
+      </button>
+      {playlistId && (
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-green-600 hover:bg-green-500 text-white"
+        >
+          <Shuffle className="mr-2 h-4 w-4" />
+          {isLoading ? 'Loading...' : 'Go'}
+        </Button>
+      )}
     </form>
   );
 }
