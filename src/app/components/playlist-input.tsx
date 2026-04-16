@@ -50,6 +50,16 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
           className="w-full"
         />
       </div>
+      <p className="text-xs text-muted-foreground">
+        Example:{' '}
+        <button
+          type="button"
+          onClick={() => setUrl('https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP9')}
+          className="text-primary hover:underline"
+        >
+          https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP9
+        </button>
+      </p>
       <Button 
         type="submit" 
         disabled={!url || isLoading}
