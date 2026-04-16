@@ -1,5 +1,5 @@
 import { Button } from './ui/button';
-import { SkipBack, SkipForward, Cast, RefreshCw, Play, Pause } from 'lucide-react';
+import { SkipBack, SkipForward, RefreshCw, Play, Pause, Tv } from 'lucide-react';
 
 interface PlayerControlsProps {
   onPrevious: () => void;
@@ -74,7 +74,7 @@ export function PlayerControls({
           disabled={!hasPlaylist}
           className="h-12 w-12"
         >
-          <Cast className="h-5 w-5" />
+          <Tv className="h-5 w-5" />
         </Button>
       )}
     </div>

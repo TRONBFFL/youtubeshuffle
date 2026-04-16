@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { PlaylistInput } from './components/playlist-input';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/youtube-player';
 import { VideoQueue } from './components/video-queue';
 import { PlayerControls } from './components/player-controls';
 import { ErrorBoundary } from './components/error-boundary';
+import { ShareToTV } from './components/share-to-tv';
 import { Video } from './types';
 import { fetchPlaylistVideos, shuffleArray } from './utils/youtube-api';
 import { toast, Toaster } from 'sonner';
@@ -14,13 +15,15 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isCasting, setIsCasting] = useState(false);
-  const [presentationConnection, setPresentationConnection] = useState<any>(null);
+  const [showShareToTV, setShowShareToTV] = useState(false);
   const playerRef = useRef<YouTubePlayerHandle>(null);
-  const castSupported = typeof window !== 'undefined' && 'PresentationRequest' in window;
 
   const handleTogglePlay = () => {
     playerRef.current?.togglePlay();
+  };
+
+  const handleCast = () => {
+    setShowShareToTV(true);
   };
 
   const handlePlaylistLoad = async (playlistId: string) => {
@@ -66,67 +69,10 @@ export default function App() {
     const shuffled = shuffleArray(videos);
     setVideos(shuffled);
     // Find the current video in the new shuffled array
-    const newIndex = shuffled.findIndex((v: Video) => v.id === currentVideo.id);
+    const newIndex = (shuffled as Video[]).findIndex((v) => v.id === currentVideo.id);
     setCurrentIndex(newIndex !== -1 ? newIndex : 0);
     toast.success('Playlist reshuffled!');
   };
-
-  const handleCast = async () => {
-    // Check if Presentation API is available
-    if (!('PresentationRequest' in window)) {
-      toast.error('Screen casting is not supported in this browser');
-      return;
-    }
-
-    try {
-      if (isCasting && presentationConnection) {
-        // Stop casting
-        presentationConnection.terminate();
-        setIsCasting(false);
-        setPresentationConnection(null);
-        toast.info('Stopped casting');
-      } else {
-        // Start casting
-        const presentationUrl = window.location.href + '?presentation=true';
-        const request = new (window as any).PresentationRequest([presentationUrl]);
-        
-        const connection = await request.start();
-        setPresentationConnection(connection);
-        setIsCasting(true);
-        
-        // Send current video info to presentation
-        connection.addEventListener('message', (event: MessageEvent) => {
-          console.log('Message from presentation:', event.data);
-        });
-        
-        connection.addEventListener('close', () => {
-          setIsCasting(false);
-          setPresentationConnection(null);
-          toast.info('Casting ended');
-        });
-
-        toast.success('Started casting to screen');
-      }
-    } catch (error) {
-      toast.error('Failed to start casting. Make sure a display is available.');
-      console.error('Cast error:', error);
-    }
-  };
-
-  // Send current video to presentation when it changes
-  useEffect(() => {
-    if (presentationConnection && videos[currentIndex]) {
-      try {
-        presentationConnection.send(JSON.stringify({
-          type: 'play',
-          videoId: videos[currentIndex].id,
-          title: videos[currentIndex].title,
-        }));
-      } catch (error) {
-        console.error('Failed to send to presentation:', error);
-      }
-    }
-  }, [currentIndex, presentationConnection, videos]);
 
   const currentVideo = videos[currentIndex];
 
@@ -134,6 +80,15 @@ export default function App() {
     <ErrorBoundary>
     <div className="min-h-screen bg-background">
       <Toaster position="top-center" />
+
+      {showShareToTV && (
+        <ShareToTV
+          onClose={() => {
+            setShowShareToTV(false);
+            if (!navigator.share) toast.success('Link copied to clipboard!');
+          }}
+        />
+      )}
       
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Header */}
@@ -194,9 +149,9 @@ export default function App() {
                 onCast={handleCast}
                 onTogglePlay={handleTogglePlay}
                 hasPlaylist={videos.length > 0}
-                isCasting={isCasting}
+                isCasting={false}
                 isPlaying={isPlaying}
-                castSupported={castSupported}
+                castSupported={true}
               />
             </div>
 
