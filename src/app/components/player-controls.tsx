@@ -1,14 +1,16 @@
 import { Button } from './ui/button';
-import { SkipBack, SkipForward, Shuffle, Cast, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { SkipBack, SkipForward, Cast, RefreshCw, Play, Pause } from 'lucide-react';
 
 interface PlayerControlsProps {
   onPrevious: () => void;
   onNext: () => void;
   onReshuffle: () => void;
   onCast: () => void;
+  onTogglePlay: () => void;
   hasPlaylist: boolean;
   isCasting: boolean;
+  isPlaying: boolean;
+  castSupported: boolean;
 }
 
 export function PlayerControls({
@@ -16,8 +18,11 @@ export function PlayerControls({
   onNext,
   onReshuffle,
   onCast,
+  onTogglePlay,
   hasPlaylist,
   isCasting,
+  isPlaying,
+  castSupported,
 }: PlayerControlsProps) {
   return (
     <div className="w-full flex items-center justify-center gap-2">
@@ -34,11 +39,11 @@ export function PlayerControls({
       <Button
         variant="outline"
         size="icon"
-        onClick={onReshuffle}
+        onClick={onTogglePlay}
         disabled={!hasPlaylist}
-        className="h-12 w-12"
+        className="h-14 w-14"
       >
-        <RefreshCw className="h-5 w-5" />
+        {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
       </Button>
 
       <Button
@@ -52,14 +57,26 @@ export function PlayerControls({
       </Button>
 
       <Button
-        variant={isCasting ? 'default' : 'outline'}
+        variant="outline"
         size="icon"
-        onClick={onCast}
+        onClick={onReshuffle}
         disabled={!hasPlaylist}
         className="h-12 w-12"
       >
-        <Cast className="h-5 w-5" />
+        <RefreshCw className="h-5 w-5" />
       </Button>
+
+      {castSupported && (
+        <Button
+          variant={isCasting ? 'default' : 'outline'}
+          size="icon"
+          onClick={onCast}
+          disabled={!hasPlaylist}
+          className="h-12 w-12"
+        >
+          <Cast className="h-5 w-5" />
+        </Button>
+      )}
     </div>
   );
 }
