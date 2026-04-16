@@ -8,7 +8,7 @@ import { ShareToTV } from './components/share-to-tv';
 import { Video } from './types';
 import { fetchPlaylistVideos, shuffleArray } from './utils/youtube-api';
 import { toast, Toaster } from 'sonner';
-import { Music } from 'lucide-react';
+
 
 export default function App() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -93,9 +93,12 @@ export default function App() {
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <Music className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">YTShuffler</h1>
+          <div className="flex items-center justify-center">
+            <img
+              src="/simplelogo.png"
+              alt="YTShuffler"
+              className="h-14 w-auto"
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             True random shuffle for any YouTube playlist
