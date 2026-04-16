@@ -3,6 +3,7 @@ import { PlaylistInput } from './components/playlist-input';
 import { YouTubePlayer } from './components/youtube-player';
 import { VideoQueue } from './components/video-queue';
 import { PlayerControls } from './components/player-controls';
+import { ErrorBoundary } from './components/error-boundary';
 import { Video } from './types';
 import { fetchPlaylistVideos, shuffleArray } from './utils/youtube-api';
 import { toast, Toaster } from 'sonner';
@@ -130,6 +131,7 @@ export default function App() {
   const currentVideo = videos[currentIndex];
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-background">
       <Toaster position="top-center" />
       
@@ -237,5 +239,6 @@ export default function App() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
