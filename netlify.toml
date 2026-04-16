@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm install --shamefully-hoist && pnpm build"
+  command = "pnpm build"
   publish = "dist"
 
 [build.environment]
