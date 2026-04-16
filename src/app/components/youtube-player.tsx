@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
 interface YouTubePlayerProps {
   videoId: string;
   onVideoEnd: () => void;
   onReady: () => void;
+  onPlayingChange?: (isPlaying: boolean) => void;
+}
+
+export interface YouTubePlayerHandle {
+  togglePlay: () => void;
 }
 
 declare global {
@@ -13,10 +18,23 @@ declare global {
   }
 }
 
-export function YouTubePlayer({ videoId, onVideoEnd, onReady }: YouTubePlayerProps) {
+export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>(
+  ({ videoId, onVideoEnd, onReady, onPlayingChange }, ref) => {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAPIReady, setIsAPIReady] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    togglePlay: () => {
+      if (!playerRef.current) return;
+      const state = playerRef.current.getPlayerState();
+      if (state === window.YT.PlayerState.PLAYING) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    },
+  }));
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -60,6 +78,7 @@ export function YouTubePlayer({ videoId, onVideoEnd, onReady }: YouTubePlayerPro
           if (event.data === window.YT.PlayerState.ENDED) {
             onVideoEnd();
           }
+          onPlayingChange?.(event.data === window.YT.PlayerState.PLAYING);
         },
       },
     });
@@ -76,4 +95,6 @@ export function YouTubePlayer({ videoId, onVideoEnd, onReady }: YouTubePlayerPro
       <div ref={containerRef} className="w-full h-full" />
     </div>
   );
-}
+});
+
+YouTubePlayer.displayName = 'YouTubePlayer';
