@@ -225,6 +225,19 @@ export default function App() {
             </a>
           </p>
         </div>
+
+        {/* Buy Me a Coffee */}
+        <div className="text-center pb-2">
+          <a
+            href="https://buymeacoffee.com/tronjedi"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400 hover:bg-yellow-300 text-yellow-900 text-sm font-medium transition-colors"
+          >
+            ☕ Buy me a coffee
+          </a>
+        </div>
+
       </div>
     </div>
     </ErrorBoundary>
