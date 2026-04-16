@@ -12,7 +12,23 @@ YouTube's built-in shuffle isn't random. Under the hood, it uses the same recomm
 
 ## The Solution
 
-YTShuffler bypasses YouTube's algorithm entirely. It fetches your complete playlist via the YouTube Data API and applies a **cryptographic Fisher-Yates shuffle** — an algorithm seeded with entropy from the Web Crypto API and sub-millisecond timing noise. The result is a genuinely unpredictable playback order: every video gets exactly one slot, no track is weighted above another, and no pattern repeats until the full playlist has played through.
+YTShuffler bypasses YouTube's algorithm entirely. It fetches your complete playlist via the YouTube Data API, then shuffles it locally — on your device — using a **cryptographic Fisher-Yates shuffle** that no server, algorithm, or engagement metric can influence.
+
+## How the Shuffle Works
+
+Most shuffle implementations — including YouTube's — rely on `Math.random()`, a pseudo-random number generator seeded from a simple system clock value. Pseudo-random means the numbers only *look* random; given the same seed, the sequence is fully deterministic and repeatable. YouTube layers further bias on top by weighting its shuffle toward videos it predicts you'll engage with, which is why the same handful of popular tracks keep bubbling to the surface.
+
+YTShuffler takes a different approach. Each shuffle position is decided by a custom entropy function that combines two independent sources of randomness:
+
+1. **The Web Crypto API** — your browser's built-in cryptographically secure random number generator (CSPRNG). Unlike `Math.random()`, the CSPRNG is seeded from genuinely unpredictable hardware-level noise (interrupt timing, CPU jitter, OS entropy pools), making the output statistically indistinguishable from true randomness.
+
+2. **Sub-millisecond timing noise** — `performance.now()` captures the fractional microseconds of the exact moment the number is requested. This value fluctuates based on CPU scheduling, memory state, and other runtime conditions that can't be predicted or reproduced.
+
+These two values are XOR-mixed through an avalanche function — meaning a single-bit difference in either input flips roughly half the output bits — and the result is normalized to a uniform float in `[0, 1)`.
+
+That float feeds a **Fisher-Yates shuffle**: a mathematically proven algorithm that walks the playlist from last position to first, swapping each video with a randomly chosen video at or before it. Every possible ordering of the playlist has an exactly equal probability of occurring — `1 / n!` for a playlist of `n` videos. There is no weighting, no history, and no repetition until every video has played.
+
+The practical result: on a 100-video playlist, YTShuffler has 9.3 × 10¹⁵⁷ possible orderings, and each one is equally likely.
 
 ---
 
