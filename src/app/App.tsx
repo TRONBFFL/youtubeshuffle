@@ -128,6 +128,7 @@ export default function App() {
               </div>
             )}
           </div>
+        </div>
 
         {/* Playlist Input */}
         {videos.length === 0 && (
