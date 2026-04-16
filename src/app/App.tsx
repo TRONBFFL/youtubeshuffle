@@ -95,10 +95,10 @@ export default function App() {
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
             <Music className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">Shuffle Player</h1>
+            <h1 className="text-2xl font-bold">YTShuffler</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Load a YouTube playlist and play with custom shuffle
+            True random shuffle for any YouTube playlist
           </p>
         </div>
 
