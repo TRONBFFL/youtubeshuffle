@@ -31,16 +31,9 @@ export default function App() {
       setVideos(shuffled);
       setCurrentIndex(0);
       toast.success(`Loaded and shuffled ${shuffled.length} videos!`);
-    } catch (error) {
-      toast.error('Failed to load playlist. Using demo videos instead.');
-      // Generate mock videos as fallback
-      const mockVideos = Array.from({ length: 10 }, (_, i) => ({
-        id: `dQw4w9WgXcQ`,
-        title: `Demo Video ${i + 1}`,
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/default.jpg',
-      }));
-      setVideos(shuffleArray(mockVideos));
-      setCurrentIndex(0);
+    } catch (error: any) {
+      const message = error?.message ?? 'Unknown error';
+      toast.error(`Failed to load playlist: ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +66,7 @@ export default function App() {
     const shuffled = shuffleArray(videos);
     setVideos(shuffled);
     // Find the current video in the new shuffled array
-    const newIndex = shuffled.findIndex(v => v.id === currentVideo.id);
+    const newIndex = shuffled.findIndex((v: Video) => v.id === currentVideo.id);
     setCurrentIndex(newIndex !== -1 ? newIndex : 0);
     toast.success('Playlist reshuffled!');
   };

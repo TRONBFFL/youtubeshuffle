@@ -30,7 +30,9 @@ export async function fetchPlaylistVideos(playlistId: string): Promise<Video[]> 
       const response = await fetch(url.toString());
       
       if (!response.ok) {
-        throw new Error('Failed to fetch playlist');
+        const errData = await response.json().catch(() => ({}));
+        const reason = errData?.error?.message ?? `HTTP ${response.status}`;
+        throw new Error(reason);
       }
 
       const data: PlaylistData = await response.json();

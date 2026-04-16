@@ -24,6 +24,14 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAPIReady, setIsAPIReady] = useState(false);
 
+  // Stabilize callbacks in refs so the player effect never re-runs due to new function references
+  const onVideoEndRef = useRef(onVideoEnd);
+  onVideoEndRef.current = onVideoEnd;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  const onPlayingChangeRef = useRef(onPlayingChange);
+  onPlayingChangeRef.current = onPlayingChange;
+
   useImperativeHandle(ref, () => ({
     togglePlay: () => {
       if (!playerRef.current) return;
@@ -72,13 +80,13 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       events: {
         onReady: () => {
-          onReady();
+          onReadyRef.current();
         },
         onStateChange: (event: any) => {
           if (event.data === window.YT.PlayerState.ENDED) {
-            onVideoEnd();
+            onVideoEndRef.current();
           }
-          onPlayingChange?.(event.data === window.YT.PlayerState.PLAYING);
+          onPlayingChangeRef.current?.(event.data === window.YT.PlayerState.PLAYING);
         },
       },
     });
@@ -88,7 +96,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
         playerRef.current.destroy();
       }
     };
-  }, [isAPIReady, videoId, onVideoEnd, onReady]);
+  }, [isAPIReady, videoId]);
 
   return (
     <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
