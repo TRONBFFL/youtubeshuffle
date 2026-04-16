@@ -61,7 +61,7 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
         <button
           type="button"
           onClick={handleExample}
-          className="text-primary hover:underline"
+          className="text-xs text-primary hover:underline break-all"
           disabled={isLoading}
         >
           https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP95rvObD7pXV4gKzXL2
