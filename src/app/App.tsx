@@ -97,7 +97,7 @@ export default function App() {
             <img
               src="/simplelogo.png"
               alt="YTShuffler"
-              className="h-28 w-auto"
+              className="w-4/5 max-w-xs h-auto"
             />
           </div>
           <p className="text-sm text-muted-foreground">
