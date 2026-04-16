@@ -16,6 +16,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showShareToTV, setShowShareToTV] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const playerRef = useRef<YouTubePlayerHandle>(null);
 
   const handleTogglePlay = () => {
@@ -103,7 +104,30 @@ export default function App() {
           <p className="text-sm text-muted-foreground">
             True random shuffle for any YouTube playlist
           </p>
-        </div>
+          <div className="text-center">
+            <button
+              onClick={() => setShowDisclaimer(v => !v)}
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-2"
+            >
+              {showDisclaimer ? 'Hide disclaimer' : 'Disclaimer'}
+            </button>
+            {showDisclaimer && (
+              <div className="mt-2 px-2 text-left text-xs text-muted-foreground/70 space-y-2 leading-relaxed">
+                <p>
+                  YTShuffler.com is an independent tool that uses publicly available YouTube embeds to play videos. This site does not host, store, or distribute any video or audio content. All videos are streamed directly from YouTube's servers and all rights remain with their respective owners.
+                </p>
+                <p>
+                  YTShuffler.com is not affiliated with, endorsed by, or connected to YouTube, Google LLC, or any of their partners.
+                </p>
+                <p>
+                  This site provides a convenience feature (true shuffle playback) and does not modify, circumvent, or interfere with YouTube's functionality, ads, or policies.
+                </p>
+                <p>
+                  Any support or donations made through this site go toward maintaining and improving YTShuffler.com and are not payments for access to YouTube content.
+                </p>
+              </div>
+            )}
+          </div>
 
         {/* Playlist Input */}
         {videos.length === 0 && (
