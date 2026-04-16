@@ -33,7 +33,7 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
   };
 
   const handleExample = () => {
-    const exampleUrl = 'https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP9';
+    const exampleUrl = 'https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP95rvObD7pXV4gKzXL2';
     setUrl(exampleUrl);
     const playlistId = extractPlaylistId(exampleUrl);
     if (playlistId) {
@@ -64,7 +64,7 @@ export function PlaylistInput({ onPlaylistLoad, isLoading }: PlaylistInputProps)
           className="text-primary hover:underline"
           disabled={isLoading}
         >
-          https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP9
+          https://youtube.com/playlist?list=PLvw0tvZ4jEmhPGP95rvObD7pXV4gKzXL2
         </button>
       </p>
       <Button 
