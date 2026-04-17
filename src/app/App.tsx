@@ -141,7 +141,8 @@ export default function App() {
 
   // Fetch lyrics when video changes or lyrics toggled on
   useEffect(() => {
-    if (!lyricsEnabled || !currentVideo) {
+    const videoId = currentVideo?.id;
+    if (!lyricsEnabled || !currentVideo || !videoId) {
       setLrcLines(null);
       setLyricsTime(0);
       setLyricsLoading(false);
@@ -152,21 +153,22 @@ export default function App() {
     // Load per-song saved offset
     try {
       const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
-      setLyricsOffset(typeof map[currentVideo.id] === 'number' ? map[currentVideo.id] : 0);
+      setLyricsOffset(typeof map[videoId] === 'number' ? map[videoId] : 0);
     } catch {
       setLyricsOffset(0);
     }
-  // Cache hit — instant display, no pause needed
-    if (lyricsCacheRef.current.has(currentVideo.id)) {
-      setLrcLines(lyricsCacheRef.current.get(currentVideo.id) ?? null);
+    // Cache hit — instant display, no pause needed
+    if (lyricsCacheRef.current.has(videoId)) {
+      setLrcLines(lyricsCacheRef.current.get(videoId) ?? null);
       setLyricsLoading(false);
-      return;
+      // Evict from cache now that it's been consumed into state
+      lyricsCacheRef.current.delete(videoId);
+      return () => {};
     }
     setLyricsLoading(true);
     let cancelled = false;
     fetchLyrics(currentVideo.title).then(lines => {
       if (cancelled) return;
-      lyricsCacheRef.current.set(currentVideo.id, lines);
       setLrcLines(lines);
       setLyricsLoading(false);
       if (lyricsPausedRef.current) {
@@ -174,7 +176,11 @@ export default function App() {
         playerRef.current?.playVideo();
       }
     });
-    return () => { cancelled = true; };
+    // Cleanup: cancel fetch and evict any cached/prefetched entry for this song
+    return () => {
+      cancelled = true;
+      lyricsCacheRef.current.delete(videoId);
+    };
   }, [lyricsEnabled, currentVideo?.id]);
 
   // Prefetch lyrics for the next 3 upcoming songs
