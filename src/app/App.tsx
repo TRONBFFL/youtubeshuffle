@@ -22,6 +22,7 @@ export default function App() {
   const playerRef = useRef<YouTubePlayerHandle>(null);
   const wallpaperInputRef = useRef<HTMLInputElement>(null);
   const lyricsPausedRef = useRef(false);
+  const lyricsCacheRef = useRef<Map<string, LrcLine[] | null>>(new Map());
 
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(() => {
     try { return localStorage.getItem('ytshuffler-wallpaper'); } catch { return null; }
@@ -155,10 +156,17 @@ export default function App() {
     } catch {
       setLyricsOffset(0);
     }
+  // Cache hit — instant display, no pause needed
+    if (lyricsCacheRef.current.has(currentVideo.id)) {
+      setLrcLines(lyricsCacheRef.current.get(currentVideo.id) ?? null);
+      setLyricsLoading(false);
+      return;
+    }
     setLyricsLoading(true);
     let cancelled = false;
     fetchLyrics(currentVideo.title).then(lines => {
       if (cancelled) return;
+      lyricsCacheRef.current.set(currentVideo.id, lines);
       setLrcLines(lines);
       setLyricsLoading(false);
       if (lyricsPausedRef.current) {
@@ -168,6 +176,21 @@ export default function App() {
     });
     return () => { cancelled = true; };
   }, [lyricsEnabled, currentVideo?.id]);
+
+  // Prefetch lyrics for the next 3 upcoming songs
+  useEffect(() => {
+    if (!lyricsEnabled || videos.length === 0) return;
+    const upcoming = videos.slice(currentIndex + 1, currentIndex + 4);
+    for (const video of upcoming) {
+      if (lyricsCacheRef.current.has(video.id)) continue;
+      lyricsCacheRef.current.set(video.id, null); // lock against duplicate fetches
+      fetchLyrics(video.title).then(lines => {
+        lyricsCacheRef.current.set(video.id, lines);
+      }).catch(() => {
+        lyricsCacheRef.current.delete(video.id);
+      });
+    }
+  }, [lyricsEnabled, currentIndex, videos]);
 
   // Poll playback time for lyrics sync
   useEffect(() => {
