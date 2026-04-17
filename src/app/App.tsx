@@ -5,8 +5,10 @@ import { VideoQueue } from './components/video-queue';
 import { PlayerControls } from './components/player-controls';
 import { ErrorBoundary } from './components/error-boundary';
 import { ShareToTV } from './components/share-to-tv';
+import { LyricsDisplay } from './components/lyrics-display';
 import { Video } from './types';
 import { fetchPlaylistVideos, shuffleArray } from './utils/youtube-api';
+import { fetchLyrics, type LrcLine } from './utils/lyrics';
 import { toast, Toaster } from 'sonner';
 
 
@@ -24,6 +26,11 @@ export default function App() {
     try { return localStorage.getItem('ytshuffler-wallpaper'); } catch { return null; }
   });
   const [bgScrollY, setBgScrollY] = useState(0);
+
+  const [lyricsEnabled, setLyricsEnabled] = useState(false);
+  const [lrcLines, setLrcLines] = useState<LrcLine[] | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [lyricsTime, setLyricsTime] = useState(0);
 
   const handleTogglePlay = () => {
     playerRef.current?.togglePlay();
@@ -111,6 +118,35 @@ export default function App() {
     try { localStorage.removeItem('ytshuffler-wallpaper'); } catch { /* ignore */ }
     setWallpaperUrl(null);
   };
+
+  // Fetch lyrics when video changes or lyrics toggled on
+  useEffect(() => {
+    if (!lyricsEnabled || !currentVideo) {
+      setLrcLines(null);
+      setLyricsTime(0);
+      setLyricsLoading(false);
+      return;
+    }
+    setLrcLines(null);
+    setLyricsTime(0);
+    setLyricsLoading(true);
+    let cancelled = false;
+    fetchLyrics(currentVideo.title).then(lines => {
+      if (cancelled) return;
+      setLrcLines(lines);
+      setLyricsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [lyricsEnabled, currentVideo?.id]);
+
+  // Poll playback time for lyrics sync
+  useEffect(() => {
+    if (!lyricsEnabled || !lrcLines) return;
+    const id = setInterval(() => {
+      setLyricsTime(playerRef.current?.getCurrentTime() ?? 0);
+    }, 250);
+    return () => clearInterval(id);
+  }, [lyricsEnabled, lrcLines]);
 
   const currentVideo = videos[currentIndex];
 
@@ -236,6 +272,37 @@ export default function App() {
                 isPlaying={isPlaying}
                 castSupported={true}
               />
+
+              {/* Lyrics toggle */}
+              <div className="flex justify-center pt-1">
+                <button
+                  onClick={() => setLyricsEnabled(v => !v)}
+                  className={`text-xs transition-colors ${
+                    lyricsEnabled
+                      ? 'text-foreground'
+                      : 'text-muted-foreground/60 hover:text-muted-foreground'
+                  }`}
+                >
+                  🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
+                </button>
+              </div>
+
+              {/* Lyrics display */}
+              {lyricsEnabled && (
+                lyricsLoading
+                  ? (
+                    <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[100px] flex items-center justify-center">
+                      <p className="text-xs text-muted-foreground/60 animate-pulse">Searching for lyrics…</p>
+                    </div>
+                  )
+                  : lrcLines
+                  ? <LyricsDisplay lines={lrcLines} currentTime={lyricsTime} />
+                  : (
+                    <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[80px] flex items-center justify-center">
+                      <p className="text-xs text-muted-foreground/50">No lyrics found for this song</p>
+                    </div>
+                  )
+              )}
             </div>
 
             {/* Video Queue */}
