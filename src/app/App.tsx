@@ -119,6 +119,8 @@ export default function App() {
     setWallpaperUrl(null);
   };
 
+  const currentVideo = videos[currentIndex];
+
   // Fetch lyrics when video changes or lyrics toggled on
   useEffect(() => {
     if (!lyricsEnabled || !currentVideo) {
@@ -147,8 +149,6 @@ export default function App() {
     }, 250);
     return () => clearInterval(id);
   }, [lyricsEnabled, lrcLines]);
-
-  const currentVideo = videos[currentIndex];
 
   return (
     <ErrorBoundary>
