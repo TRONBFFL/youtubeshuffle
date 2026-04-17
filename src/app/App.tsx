@@ -31,6 +31,7 @@ export default function App() {
   const [lrcLines, setLrcLines] = useState<LrcLine[] | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsTime, setLyricsTime] = useState(0);
+  const [theaterMode, setTheaterMode] = useState(false);
 
   const handleTogglePlay = () => {
     playerRef.current?.togglePlay();
@@ -96,6 +97,20 @@ export default function App() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, [wallpaperUrl]);
+
+  useEffect(() => {
+    if (!theaterMode) {
+      document.body.style.overflow = '';
+      return;
+    }
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setTheaterMode(false); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [theaterMode]);
 
   const handleWallpaperUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -243,66 +258,93 @@ export default function App() {
         {/* Video Player */}
         {currentVideo && (
           <div className="space-y-4">
-            <div className={wallpaperUrl ? 'bg-card/70 backdrop-blur-md rounded-lg p-4 border space-y-4' : 'bg-card rounded-lg p-4 border space-y-4'}>
-              <div>
-                <h2 className="font-semibold text-lg line-clamp-2 mb-1">
-                  {currentVideo.title}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Video {currentIndex + 1} of {videos.length}
-                </p>
-              </div>
-              
-              <YouTubePlayer
-                ref={playerRef}
-                videoId={currentVideo.id}
-                onVideoEnd={handleVideoEnd}
-                onReady={() => setIsPlaying(true)}
-                onPlayingChange={setIsPlaying}
-              />
-              
-              <PlayerControls
-                onPrevious={handlePrevious}
-                onNext={handleNext}
-                onReshuffle={handleReshuffle}
-                onCast={handleCast}
-                onTogglePlay={handleTogglePlay}
-                hasPlaylist={videos.length > 0}
-                isCasting={false}
-                isPlaying={isPlaying}
-                castSupported={true}
-              />
-
-              {/* Lyrics toggle */}
-              <div className="flex justify-center pt-1">
+            <div className={
+              theaterMode
+                ? 'fixed inset-0 z-50 bg-background flex flex-col p-4 sm:p-8 gap-4 overflow-y-auto'
+                : (wallpaperUrl
+                  ? 'bg-card/70 backdrop-blur-md rounded-lg p-4 border space-y-4'
+                  : 'bg-card rounded-lg p-4 border space-y-4')
+            }>
+              <div className="flex items-start justify-between gap-2 shrink-0">
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-lg line-clamp-2 mb-1">
+                    {currentVideo.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Video {currentIndex + 1} of {videos.length}
+                  </p>
+                </div>
                 <button
-                  onClick={() => setLyricsEnabled(v => !v)}
-                  className={`text-xs transition-colors ${
-                    lyricsEnabled
-                      ? 'text-foreground'
-                      : 'text-muted-foreground/60 hover:text-muted-foreground'
-                  }`}
+                  onClick={() => setTheaterMode(v => !v)}
+                  className="hidden sm:flex items-center shrink-0 p-1.5 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-colors"
+                  title={theaterMode ? 'Exit fullscreen (Esc)' : 'Fullscreen mode'}
                 >
-                  🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
+                  {theaterMode ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                    </svg>
+                  )}
                 </button>
               </div>
+              
+              <div className={theaterMode ? 'w-full max-w-4xl mx-auto shrink-0' : ''}>
+                <YouTubePlayer
+                  ref={playerRef}
+                  videoId={currentVideo.id}
+                  onVideoEnd={handleVideoEnd}
+                  onReady={() => setIsPlaying(true)}
+                  onPlayingChange={setIsPlaying}
+                />
+              </div>
+              
+              <div className={theaterMode ? 'w-full max-w-4xl mx-auto space-y-4 shrink-0' : 'space-y-4'}>
+                <PlayerControls
+                  onPrevious={handlePrevious}
+                  onNext={handleNext}
+                  onReshuffle={handleReshuffle}
+                  onCast={handleCast}
+                  onTogglePlay={handleTogglePlay}
+                  hasPlaylist={videos.length > 0}
+                  isCasting={false}
+                  isPlaying={isPlaying}
+                  castSupported={true}
+                />
 
-              {/* Lyrics display */}
-              {lyricsEnabled && (
-                lyricsLoading
-                  ? (
-                    <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[100px] flex items-center justify-center">
-                      <p className="text-xs text-muted-foreground/60 animate-pulse">Searching for lyrics…</p>
-                    </div>
-                  )
-                  : lrcLines
-                  ? <LyricsDisplay lines={lrcLines} currentTime={lyricsTime} />
-                  : (
-                    <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[80px] flex items-center justify-center">
-                      <p className="text-xs text-muted-foreground/50">No lyrics found for this song</p>
-                    </div>
-                  )
-              )}
+                {/* Lyrics toggle */}
+                <div className="flex justify-center pt-1">
+                  <button
+                    onClick={() => setLyricsEnabled(v => !v)}
+                    className={`text-xs transition-colors ${
+                      lyricsEnabled
+                        ? 'text-foreground'
+                        : 'text-muted-foreground/60 hover:text-muted-foreground'
+                    }`}
+                  >
+                    🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
+                  </button>
+                </div>
+
+                {/* Lyrics display */}
+                {lyricsEnabled && (
+                  lyricsLoading
+                    ? (
+                      <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[100px] flex items-center justify-center">
+                        <p className="text-xs text-muted-foreground/60 animate-pulse">Searching for lyrics…</p>
+                      </div>
+                    )
+                    : lrcLines
+                    ? <LyricsDisplay lines={lrcLines} currentTime={lyricsTime} />
+                    : (
+                      <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[80px] flex items-center justify-center">
+                        <p className="text-xs text-muted-foreground/50">No lyrics found for this song</p>
+                      </div>
+                    )
+                )}
+              </div>
             </div>
 
             {/* Video Queue */}
