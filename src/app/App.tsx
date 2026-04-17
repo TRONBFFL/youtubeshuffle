@@ -66,13 +66,12 @@ export default function App() {
   };
 
   const handleReshuffle = () => {
-    const currentVideo = videos[currentIndex];
-    const shuffled = shuffleArray(videos);
-    setVideos(shuffled);
-    // Find the current video in the new shuffled array
-    const newIndex = (shuffled as Video[]).findIndex((v) => v.id === currentVideo.id);
-    setCurrentIndex(newIndex !== -1 ? newIndex : 0);
-    toast.success('Playlist reshuffled!');
+    const played = videos.slice(0, currentIndex);
+    const current = videos[currentIndex];
+    const unplayed = videos.slice(currentIndex + 1);
+    const shuffledUnplayed = shuffleArray(unplayed);
+    setVideos([...played, current, ...shuffledUnplayed]);
+    toast.success('Remaining videos reshuffled!');
   };
 
   const currentVideo = videos[currentIndex];
