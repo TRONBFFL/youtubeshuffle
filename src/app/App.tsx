@@ -31,6 +31,7 @@ export default function App() {
   const [lrcLines, setLrcLines] = useState<LrcLine[] | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsTime, setLyricsTime] = useState(0);
+  const [lyricsOffset, setLyricsOffset] = useState(0);
   const [theaterMode, setTheaterMode] = useState(false);
 
   const handleTogglePlay = () => {
@@ -146,6 +147,7 @@ export default function App() {
     }
     setLrcLines(null);
     setLyricsTime(0);
+    setLyricsOffset(0);
     setLyricsLoading(true);
     let cancelled = false;
     fetchLyrics(currentVideo.title).then(lines => {
@@ -161,7 +163,7 @@ export default function App() {
     if (!lyricsEnabled || !lrcLines) return;
     const id = setInterval(() => {
       setLyricsTime(playerRef.current?.getCurrentTime() ?? 0);
-    }, 250);
+    }, 100);
     return () => clearInterval(id);
   }, [lyricsEnabled, lrcLines]);
 
@@ -315,7 +317,7 @@ export default function App() {
                 />
 
                 {/* Lyrics toggle */}
-                <div className="flex justify-center pt-1">
+                <div className="flex items-center justify-center gap-3 pt-1">
                   <button
                     onClick={() => setLyricsEnabled(v => !v)}
                     className={`text-xs transition-colors ${
@@ -326,6 +328,30 @@ export default function App() {
                   >
                     🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
                   </button>
+                  {lyricsEnabled && lrcLines && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
+                      <button
+                        onClick={() => setLyricsOffset(o => o - 0.5)}
+                        className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors font-mono"
+                        title="Lyrics showing too early — delay by 0.5s"
+                      >−</button>
+                      <span className="w-10 text-center tabular-nums">
+                        {lyricsOffset === 0 ? 'sync' : `${lyricsOffset > 0 ? '+' : ''}${lyricsOffset.toFixed(1)}s`}
+                      </span>
+                      <button
+                        onClick={() => setLyricsOffset(o => o + 0.5)}
+                        className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors font-mono"
+                        title="Lyrics showing too late — advance by 0.5s"
+                      >+</button>
+                      {lyricsOffset !== 0 && (
+                        <button
+                          onClick={() => setLyricsOffset(0)}
+                          className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors"
+                          title="Reset sync"
+                        >↺</button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Lyrics display */}
@@ -337,7 +363,7 @@ export default function App() {
                       </div>
                     )
                     : lrcLines
-                    ? <LyricsDisplay lines={lrcLines} currentTime={lyricsTime} />
+                    ? <LyricsDisplay lines={lrcLines} currentTime={lyricsTime + lyricsOffset} />
                     : (
                       <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[80px] flex items-center justify-center">
                         <p className="text-xs text-muted-foreground/50">No lyrics found for this song</p>
