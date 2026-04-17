@@ -7,6 +7,21 @@ interface LyricsDisplayProps {
 }
 
 export function LyricsDisplay({ lines, currentTime }: LyricsDisplayProps) {
+  const isUnsynced = lines.length > 0 && lines[0].time === -1;
+
+  if (isUnsynced) {
+    return (
+      <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm max-h-64 overflow-y-auto space-y-1">
+        <p className="text-center text-xs text-muted-foreground/40 mb-2">Lyrics (unsynced)</p>
+        {lines.map((line, i) => (
+          <p key={i} className="text-center text-sm text-foreground/80 leading-relaxed">
+            {line.text}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
   const activeIndex = useMemo(() => {
     let idx = -1;
     for (let i = 0; i < lines.length; i++) {

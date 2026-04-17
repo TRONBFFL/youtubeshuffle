@@ -21,6 +21,7 @@ export default function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const playerRef = useRef<YouTubePlayerHandle>(null);
   const wallpaperInputRef = useRef<HTMLInputElement>(null);
+  const lyricsPausedRef = useRef(false);
 
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(() => {
     try { return localStorage.getItem('ytshuffler-wallpaper'); } catch { return null; }
@@ -154,6 +155,10 @@ export default function App() {
       if (cancelled) return;
       setLrcLines(lines);
       setLyricsLoading(false);
+      if (lyricsPausedRef.current) {
+        lyricsPausedRef.current = false;
+        playerRef.current?.playVideo();
+      }
     });
     return () => { cancelled = true; };
   }, [lyricsEnabled, currentVideo?.id]);
@@ -298,7 +303,12 @@ export default function App() {
                   ref={playerRef}
                   videoId={currentVideo.id}
                   onVideoEnd={handleVideoEnd}
-                  onReady={() => setIsPlaying(true)}
+                  onReady={() => {
+                    if (lyricsEnabled && lyricsLoading) {
+                      playerRef.current?.pauseVideo();
+                      lyricsPausedRef.current = true;
+                    }
+                  }}
                   onPlayingChange={setIsPlaying}
                 />
               </div>
@@ -319,7 +329,14 @@ export default function App() {
                 {/* Lyrics toggle */}
                 <div className="flex items-center justify-center gap-3 pt-1">
                   <button
-                    onClick={() => setLyricsEnabled(v => !v)}
+                    onClick={() => setLyricsEnabled(v => {
+                      const next = !v;
+                      if (!next && lyricsPausedRef.current) {
+                        lyricsPausedRef.current = false;
+                        playerRef.current?.playVideo();
+                      }
+                      return next;
+                    })}
                     className={`text-xs transition-colors ${
                       lyricsEnabled
                         ? 'text-foreground'
@@ -328,7 +345,7 @@ export default function App() {
                   >
                     🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
                   </button>
-                  {lyricsEnabled && lrcLines && (
+                  {lyricsEnabled && lrcLines && lrcLines[0]?.time !== -1 && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                       <button
                         onClick={() => setLyricsOffset(o => o - 0.5)}

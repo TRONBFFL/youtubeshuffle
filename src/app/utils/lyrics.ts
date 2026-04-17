@@ -71,19 +71,41 @@ async function lrclibSearch(params: Record<string, string>): Promise<LrcLine[] |
   return lines.length > 0 ? lines : null;
 }
 
+async function fetchLyricsOvh(artist: string, track: string): Promise<LrcLine[] | null> {
+  try {
+    const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(track)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text: string = data?.lyrics;
+    if (!text || typeof text !== 'string') return null;
+    const lines = text
+      .split('\n')
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0)
+      .map((l: string) => ({ time: -1, text: l }));
+    return lines.length > 0 ? lines : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchLyrics(title: string): Promise<LrcLine[] | null> {
   const parsed = parseTitle(title);
   if (!parsed) return null;
   const { artist, track } = parsed;
   try {
-    // Strategy 1: structured artist + track
+    // Strategy 1: structured artist + track (synced)
     const r1 = await lrclibSearch({ track_name: track, artist_name: artist });
     if (r1) return r1;
-    // Strategy 2: full-text query
+    // Strategy 2: full-text query (synced)
     const r2 = await lrclibSearch({ q: `${artist} ${track}` });
     if (r2) return r2;
-    // Strategy 3: track name only (handles artist name mismatches)
-    return await lrclibSearch({ track_name: track });
+    // Strategy 3: track name only (synced, handles artist name mismatches)
+    const r3 = await lrclibSearch({ track_name: track });
+    if (r3) return r3;
+    // Strategy 4: lyrics.ovh fallback (unsynced plain text — time: -1)
+    return await fetchLyricsOvh(artist, track);
   } catch {
     return null;
   }

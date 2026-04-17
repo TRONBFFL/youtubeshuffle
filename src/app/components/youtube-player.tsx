@@ -10,6 +10,8 @@ interface YouTubePlayerProps {
 export interface YouTubePlayerHandle {
   togglePlay: () => void;
   getCurrentTime: () => number;
+  pauseVideo: () => void;
+  playVideo: () => void;
 }
 
 declare global {
@@ -44,6 +46,8 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       }
     },
     getCurrentTime: () => playerRef.current?.getCurrentTime() ?? 0,
+    pauseVideo: () => playerRef.current?.pauseVideo(),
+    playVideo: () => playerRef.current?.playVideo(),
   }));
 
   // Load YouTube IFrame API
