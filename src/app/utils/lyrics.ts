@@ -3,16 +3,39 @@ export interface LrcLine {
   text: string;
 }
 
+// Patterns to strip noise from the track portion of a YouTube title
+const TRACK_NOISE_PATTERNS = [
+  /\(\s*official\s*(music\s*)?video\s*\)/gi,
+  /\(\s*official\s*(audio|lyric\s*video|lyrics\s*video|visualizer)\s*\)/gi,
+  /\(\s*(audio|lyrics?(\s*video)?|lyric\s*video|visualizer)\s*\)/gi,
+  /\(\s*(hq|hd|4k|1080p|720p)\s*\)/gi,
+  /\(\s*live(\s*(at|from|performance|session|version|acoustic))?\s*\)/gi,
+  /\(\s*(acoustic|unplugged|demo|remix|radio\s*edit|extended(\s*mix)?|club\s*mix|original\s*mix)\s*\)/gi,
+  /\(\s*(music\s*video|official\s*single|single)\s*\)/gi,
+  /\[\s*official\s*(music\s*)?video\s*\]/gi,
+  /\[\s*(audio|lyrics?|lyric\s*video|visualizer|hq|hd|4k)\s*\]/gi,
+  /\s*[|｜]\s*.+$/g,
+  /\s*(feat\.?|ft\.?|featuring)\s+[^(\[)]+/gi,
+  /#\S+/g,
+  /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,
+  /^["'"']+|["'"']+$/g,
+  /\(\s*\)|\[\s*\]/g,
+];
+
+function cleanTrack(raw: string): string {
+  let s = raw;
+  for (const pattern of TRACK_NOISE_PATTERNS) {
+    s = s.replace(pattern, ' ');
+  }
+  return s.replace(/\s{2,}/g, ' ').trim();
+}
+
 function parseTitle(title: string): { artist: string; track: string } | null {
-  const cleaned = title.replace(/\s*\[.*?\]\s*/g, ' ').trim();
-  const match = cleaned.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  let t = title.replace(/^\s*\[.*?\]\s*/g, '').trim();
+  const match = t.match(/^(.+?)\s*[-–—:]\s*(.+)$/);
   if (!match) return null;
-  const artist = match[1].trim();
-  const track = match[2]
-    .replace(/\s*\(.*?\)\s*/g, ' ')
-    .replace(/\s*feat\..*$/i, '')
-    .replace(/\s*ft\..*$/i, '')
-    .trim();
+  const artist = match[1].trim().replace(/["'"']/g, '').trim();
+  const track = cleanTrack(match[2]);
   if (!artist || !track) return null;
   return { artist, track };
 }
@@ -29,24 +52,38 @@ function parseLrc(lrc: string): LrcLine[] {
   return lines.sort((a, b) => a.time - b.time);
 }
 
+const HEADERS = { 'Lrclib-Client': 'YTShuffler/1.0 (ytshuffler.com)' };
+
+async function lrclibSearch(params: Record<string, string>): Promise<LrcLine[] | null> {
+  const url = new URL('https://lrclib.net/api/search');
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const res = await fetch(url.toString(), {
+    headers: HEADERS,
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!res.ok) return null;
+  const results: any[] = await res.json();
+  if (!Array.isArray(results) || results.length === 0) return null;
+  const hit = results.find(r => r.syncedLyrics) ?? results[0];
+  const lrc = hit?.syncedLyrics;
+  if (!lrc) return null;
+  const lines = parseLrc(lrc);
+  return lines.length > 0 ? lines : null;
+}
+
 export async function fetchLyrics(title: string): Promise<LrcLine[] | null> {
   const parsed = parseTitle(title);
   if (!parsed) return null;
+  const { artist, track } = parsed;
   try {
-    const url = new URL('https://lrclib.net/api/search');
-    url.searchParams.set('track_name', parsed.track);
-    url.searchParams.set('artist_name', parsed.artist);
-    const res = await fetch(url.toString(), {
-      headers: { 'Lrclib-Client': 'YTShuffler/1.0 (ytshuffler.com)' },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return null;
-    const results: any[] = await res.json();
-    if (!Array.isArray(results)) return null;
-    const hit = results.find(r => r.syncedLyrics);
-    if (!hit?.syncedLyrics) return null;
-    const lines = parseLrc(hit.syncedLyrics);
-    return lines.length > 0 ? lines : null;
+    // Strategy 1: structured artist + track
+    const r1 = await lrclibSearch({ track_name: track, artist_name: artist });
+    if (r1) return r1;
+    // Strategy 2: full-text query
+    const r2 = await lrclibSearch({ q: `${artist} ${track}` });
+    if (r2) return r2;
+    // Strategy 3: track name only (handles artist name mismatches)
+    return await lrclibSearch({ track_name: track });
   } catch {
     return null;
   }
