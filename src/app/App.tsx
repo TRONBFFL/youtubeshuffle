@@ -302,7 +302,9 @@ export default function App() {
           <div className="space-y-4">
             <div className={
               theaterMode
-                ? 'fixed inset-0 z-50 bg-background flex flex-col p-3 sm:p-5 gap-2 overflow-y-auto'
+                ? (wallpaperUrl
+                  ? 'fixed inset-0 z-50 bg-background/60 backdrop-blur-sm flex flex-col p-3 sm:p-5 gap-2 overflow-y-auto'
+                  : 'fixed inset-0 z-50 bg-background flex flex-col p-3 sm:p-5 gap-2 overflow-y-auto')
                 : (wallpaperUrl
                   ? 'bg-card/70 backdrop-blur-md rounded-lg p-4 border space-y-4'
                   : 'bg-card rounded-lg p-4 border space-y-4')
