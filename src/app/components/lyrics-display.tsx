@@ -11,7 +11,7 @@ export function LyricsDisplay({ lines, currentTime }: LyricsDisplayProps) {
 
   if (isUnsynced) {
     return (
-      <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm max-h-64 overflow-y-auto space-y-1">
+      <div className="rounded-lg p-3 bg-black/20 backdrop-blur-sm max-h-40 overflow-y-auto space-y-1">
         <p className="text-center text-xs text-muted-foreground/40 mb-2">Lyrics (unsynced)</p>
         {lines.map((line, i) => (
           <p key={i} className="text-center text-sm text-foreground/80 leading-relaxed">

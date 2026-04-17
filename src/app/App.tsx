@@ -302,7 +302,7 @@ export default function App() {
           <div className="space-y-4">
             <div className={
               theaterMode
-                ? 'fixed inset-0 z-50 bg-background flex flex-col p-4 sm:p-8 gap-4 overflow-y-auto'
+                ? 'fixed inset-0 z-50 bg-background flex flex-col p-3 sm:p-5 gap-2 overflow-y-auto'
                 : (wallpaperUrl
                   ? 'bg-card/70 backdrop-blur-md rounded-lg p-4 border space-y-4'
                   : 'bg-card rounded-lg p-4 border space-y-4')
@@ -348,7 +348,7 @@ export default function App() {
                 />
               </div>
               
-              <div className={theaterMode ? 'w-full max-w-4xl mx-auto space-y-4 shrink-0' : 'space-y-4'}>
+              <div className={theaterMode ? 'w-full max-w-4xl mx-auto space-y-2 shrink-0' : 'space-y-4'}>
                 <PlayerControls
                   onPrevious={handlePrevious}
                   onNext={handleNext}
