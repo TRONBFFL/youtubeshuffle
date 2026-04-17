@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { PlaylistInput } from './components/playlist-input';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/youtube-player';
 import { VideoQueue } from './components/video-queue';
@@ -18,6 +18,12 @@ export default function App() {
   const [showShareToTV, setShowShareToTV] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const playerRef = useRef<YouTubePlayerHandle>(null);
+  const wallpaperInputRef = useRef<HTMLInputElement>(null);
+
+  const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(() => {
+    try { return localStorage.getItem('ytshuffler-wallpaper'); } catch { return null; }
+  });
+  const [bgScrollY, setBgScrollY] = useState(0);
 
   const handleTogglePlay = () => {
     playerRef.current?.togglePlay();
@@ -74,11 +80,61 @@ export default function App() {
     toast.success('Remaining videos reshuffled!');
   };
 
+  useEffect(() => {
+    if (!wallpaperUrl) {
+      setBgScrollY(0);
+      return;
+    }
+    const onScroll = () => setBgScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [wallpaperUrl]);
+
+  const handleWallpaperUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      try {
+        localStorage.setItem('ytshuffler-wallpaper', dataUrl);
+      } catch {
+        toast.error('Image too large to save — will only last this session.');
+      }
+      setWallpaperUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveWallpaper = () => {
+    try { localStorage.removeItem('ytshuffler-wallpaper'); } catch { /* ignore */ }
+    setWallpaperUrl(null);
+  };
+
   const currentVideo = videos[currentIndex];
 
   return (
     <ErrorBoundary>
-    <div className="min-h-screen bg-background">
+      {wallpaperUrl && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            top: '-10vh',
+            left: 0,
+            width: '100%',
+            height: '120vh',
+            zIndex: -1,
+            backgroundImage: `url(${wallpaperUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            transform: `translateY(${bgScrollY * 0.3}px)`,
+            willChange: 'transform',
+          }}
+        />
+      )}
+    <div className={wallpaperUrl ? 'min-h-screen bg-transparent' : 'min-h-screen bg-background'}>
       <Toaster position="top-center" />
 
       {showShareToTV && (
@@ -131,7 +187,7 @@ export default function App() {
 
         {/* Playlist Input */}
         {videos.length === 0 && (
-          <div className="bg-card rounded-lg p-6 border">
+          <div className={wallpaperUrl ? 'bg-card/70 backdrop-blur-md rounded-lg p-6 border' : 'bg-card rounded-lg p-6 border'}>
             <PlaylistInput
               onPlaylistLoad={handlePlaylistLoad}
               isLoading={isLoading}
@@ -151,7 +207,7 @@ export default function App() {
         {/* Video Player */}
         {currentVideo && (
           <div className="space-y-4">
-            <div className="bg-card rounded-lg p-4 border space-y-4">
+            <div className={wallpaperUrl ? 'bg-card/70 backdrop-blur-md rounded-lg p-4 border space-y-4' : 'bg-card rounded-lg p-4 border space-y-4'}>
               <div>
                 <h2 className="font-semibold text-lg line-clamp-2 mb-1">
                   {currentVideo.title}
@@ -183,7 +239,7 @@ export default function App() {
             </div>
 
             {/* Video Queue */}
-            <div className="bg-card rounded-lg p-4 border">
+            <div className={wallpaperUrl ? 'bg-card/70 backdrop-blur-md rounded-lg p-4 border' : 'bg-card rounded-lg p-4 border'}>
               <VideoQueue
                 videos={videos}
                 currentIndex={currentIndex}
@@ -205,7 +261,7 @@ export default function App() {
         )}
 
         {/* API Key Notice */}
-        <div className="text-center text-xs text-muted-foreground p-4 bg-muted/50 rounded-lg">
+        <div className={`text-center text-xs text-muted-foreground p-4 rounded-lg ${wallpaperUrl ? 'bg-muted/30 backdrop-blur-sm' : 'bg-muted/50'}`}>
           <p className="mb-2">
             🔑 To use real playlists, add your YouTube Data API v3 key to:
           </p>
@@ -235,6 +291,41 @@ export default function App() {
           >
             ☕ Buy me a coffee
           </a>
+        </div>
+
+        {/* Wallpaper */}
+        <div className="text-center pb-4">
+          <input
+            ref={wallpaperInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleWallpaperUpload}
+          />
+          {wallpaperUrl ? (
+            <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+              <button
+                onClick={() => wallpaperInputRef.current?.click()}
+                className="hover:text-foreground transition-colors underline underline-offset-2"
+              >
+                Change wallpaper
+              </button>
+              <span aria-hidden="true">·</span>
+              <button
+                onClick={handleRemoveWallpaper}
+                className="hover:text-foreground transition-colors underline underline-offset-2"
+              >
+                Remove wallpaper
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => wallpaperInputRef.current?.click()}
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              🖼️ Set wallpaper
+            </button>
+          )}
         </div>
 
       </div>
