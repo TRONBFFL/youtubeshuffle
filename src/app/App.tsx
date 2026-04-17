@@ -148,7 +148,13 @@ export default function App() {
     }
     setLrcLines(null);
     setLyricsTime(0);
-    setLyricsOffset(0);
+    // Load per-song saved offset
+    try {
+      const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
+      setLyricsOffset(typeof map[currentVideo.id] === 'number' ? map[currentVideo.id] : 0);
+    } catch {
+      setLyricsOffset(0);
+    }
     setLyricsLoading(true);
     let cancelled = false;
     fetchLyrics(currentVideo.title).then(lines => {
@@ -348,7 +354,15 @@ export default function App() {
                   {lyricsEnabled && lrcLines && lrcLines[0]?.time !== -1 && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                       <button
-                        onClick={() => setLyricsOffset(o => o - 0.5)}
+                        onClick={() => setLyricsOffset(o => {
+                          const next = Math.round((o - 0.5) * 10) / 10;
+                          try {
+                            const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
+                            map[currentVideo.id] = next;
+                            localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
+                          } catch {}
+                          return next;
+                        })}
                         className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors font-mono"
                         title="Lyrics showing too early — delay by 0.5s"
                       >−</button>
@@ -356,13 +370,28 @@ export default function App() {
                         {lyricsOffset === 0 ? 'sync' : `${lyricsOffset > 0 ? '+' : ''}${lyricsOffset.toFixed(1)}s`}
                       </span>
                       <button
-                        onClick={() => setLyricsOffset(o => o + 0.5)}
+                        onClick={() => setLyricsOffset(o => {
+                          const next = Math.round((o + 0.5) * 10) / 10;
+                          try {
+                            const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
+                            map[currentVideo.id] = next;
+                            localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
+                          } catch {}
+                          return next;
+                        })}
                         className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors font-mono"
                         title="Lyrics showing too late — advance by 0.5s"
                       >+</button>
                       {lyricsOffset !== 0 && (
                         <button
-                          onClick={() => setLyricsOffset(0)}
+                          onClick={() => {
+                            try {
+                              const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
+                              delete map[currentVideo.id];
+                              localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
+                            } catch {}
+                            setLyricsOffset(0);
+                          }}
                           className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors"
                           title="Reset sync"
                         >↺</button>
