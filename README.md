@@ -34,6 +34,7 @@ The practical result: on a 100-video playlist, YTShuffler has 9.3 × 10¹⁵⁷ 
 
 ## Features
 
+### Core Playback
 - 🎲 **True random shuffle** — cryptographic randomness, not YouTube's pseudo-random algorithm
 - 📋 **Full playlist loading** — fetches every video across all pages, not just the first 50
 - ⏭ **Queue view** — see the full shuffled order and jump to any video
@@ -43,17 +44,53 @@ The practical result: on a 100-video playlist, YTShuffler has 9.3 × 10¹⁵⁷ 
 - 📺 **Open on TV** — QR code and share link for Smart TVs, Fire Stick, and Chromecast browsers
 - ⚡ **No login required** — just paste a playlist URL and go
 
+### Lyrics
+- 🎵 **Synced lyrics** — real-time karaoke-style display that tracks the current line as the song plays, sourced from [lrclib.net](https://lrclib.net)
+- 📄 **Plain text fallback** — if synced lyrics aren't available, unsynced lyrics are fetched from [lyrics.ovh](https://lyrics.ovh) and displayed as a scrollable transcript
+- 🔍 **Smart title parsing** — strips noise like "(Official Music Video)", "(feat. Artist)", "[HD]", and emoji from YouTube titles before searching, dramatically improving match rates
+- ⏸ **Auto-pause while loading** — when lyrics mode is on, the video waits until lyrics are fetched before playing, so you never miss the first lines
+- ⏱ **Per-song sync offset** — use the **−** and **+** buttons (±0.5 s steps) to nudge lyrics earlier or later for a song; your offset for each song is saved automatically and restored next time
+- 🔄 **Offset reset** — the **↺** button clears a song's saved offset back to zero
+- 🚀 **Lyrics prefetch** — lyrics for the next 3 upcoming songs are fetched silently in the background so they appear instantly when those songs start
+
+### Visuals
+- 🖼 **Custom wallpaper** — upload any image as a full-page parallax background; saved to localStorage so it persists across sessions
+- 🎬 **Theater mode** — expands the player to fill the entire viewport; press **Esc** or the exit button to return to normal view
+- ✨ **Frosted-glass UI** — when a wallpaper is set, all cards and the theater overlay use a semi-transparent blur effect so the wallpaper shows through
+
 ---
 
 ## Usage
+
+### Basic playback
 
 1. Copy any public YouTube playlist URL:
    ```
    https://youtube.com/playlist?list=PLxxxxxxxxxxxxxxxx
    ```
-2. Paste it into YTShuffler
-3. Hit **Load & Shuffle**
-4. Enjoy your playlist in true random order
+2. Paste it into YTShuffler and hit **Load & Shuffle**
+3. Enjoy your playlist in true random order
+
+### Lyrics
+
+1. While a song is playing, click the **Lyrics** toggle to enable lyrics mode
+2. Synced lyrics scroll automatically — the current line is highlighted in bold
+3. If only plain text lyrics are available they are shown in a scrollable panel instead
+4. To fix timing drift, use the **−** / **+** buttons next to the offset display (e.g. `+1.0s`) to shift lyrics earlier or later in 0.5 s steps — the adjustment saves automatically per song
+5. Click **↺** to reset a song's offset to zero
+6. Toggle lyrics off at any time; the video resumes immediately
+
+### Wallpaper
+
+1. Click the wallpaper icon in the toolbar and choose an image file
+2. The image becomes a fixed parallax background behind the entire UI
+3. To remove it, click the wallpaper icon again and select **Remove**
+
+### Theater mode
+
+1. Click the **⛶ Theater** button (or the expand icon on the player) to go fullscreen
+2. Press **Esc** or the **✕** button to exit
+3. If a wallpaper is set it remains visible behind the frosted theater overlay
 
 ---
 
@@ -65,6 +102,8 @@ The practical result: on a 100-video playlist, YTShuffler has 9.3 × 10¹⁵⁷ 
 - **YouTube IFrame API** (video playback)
 - **YouTube Data API v3** (playlist fetching)
 - **Web Crypto API** (cryptographic shuffle entropy)
+- **lrclib.net** (synced LRC lyrics)
+- **lyrics.ovh** (plain text lyrics fallback)
 - **Netlify** (hosting)
 
 ---
