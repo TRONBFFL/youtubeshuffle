@@ -123,7 +123,14 @@ export default function App() {
   const handleAutoSync = () => {
     if (!lrcLines || lrcLines[0]?.time === -1 || !currentVideo) return;
     const playerNow = playerRef.current?.getCurrentTime() ?? 0;
-    const newOffset = Math.round((playerNow - lrcLines[0].time) * 2) / 2;
+    // Find which LRC line is currently highlighted (accounting for existing offset)
+    const adjustedNow = playerNow - lyricsOffset;
+    let activeLineIdx = 0;
+    for (let i = 0; i < lrcLines.length; i++) {
+      if (lrcLines[i].time <= adjustedNow) activeLineIdx = i;
+      else break;
+    }
+    const newOffset = Math.round((playerNow - lrcLines[activeLineIdx].time) * 2) / 2;
     setLyricsOffset(newOffset);
     try {
       const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
@@ -543,9 +550,9 @@ export default function App() {
                             <button
                               onClick={handleAutoSync}
                               className="text-xs px-3 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors"
-                              title="Press this the moment you hear the first word — it will lock the lyrics to that point"
+                              title="Tap this while the highlighted line is being sung — locks lyrics to that line"
                             >
-                              ♪ Tap when singing starts
+                              ♪ Tap to sync to current line
                             </button>
                             <button
                               onClick={() => setSyncHintDismissed(true)}
