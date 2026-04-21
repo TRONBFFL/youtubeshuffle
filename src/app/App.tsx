@@ -34,6 +34,7 @@ export default function App() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsTime, setLyricsTime] = useState(0);
   const [lyricsOffset, setLyricsOffset] = useState(0);
+  const [syncHintDismissed, setSyncHintDismissed] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
 
   // Lyrics-scan state
@@ -117,6 +118,20 @@ export default function App() {
     const shuffledUnplayed = shuffleArray(unplayed);
     setVideos([...played, current, ...shuffledUnplayed]);
     toast.success('Remaining videos reshuffled!');
+  };
+
+  const handleAutoSync = () => {
+    if (!lrcLines || lrcLines[0]?.time === -1 || !currentVideo) return;
+    const playerNow = playerRef.current?.getCurrentTime() ?? 0;
+    const newOffset = Math.round((playerNow - lrcLines[0].time) * 2) / 2;
+    setLyricsOffset(newOffset);
+    try {
+      const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
+      map[currentVideo.id] = newOffset;
+      localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
+    } catch {}
+    setSyncHintDismissed(true);
+    toast.success(`Lyrics synced (offset ${newOffset > 0 ? '+' : ''}${newOffset.toFixed(1)}s)`);
   };
 
   useEffect(() => {
@@ -218,10 +233,12 @@ export default function App() {
       setLrcLines(null);
       setLyricsTime(0);
       setLyricsLoading(false);
+      setSyncHintDismissed(false);
       return;
     }
     setLrcLines(null);
     setLyricsTime(0);
+    setSyncHintDismissed(false);
     // Load per-song saved offset
     try {
       const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
@@ -457,15 +474,18 @@ export default function App() {
                   {lyricsEnabled && lrcLines && lrcLines[0]?.time !== -1 && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                       <button
-                        onClick={() => setLyricsOffset(o => {
-                          const next = Math.round((o - 0.5) * 10) / 10;
-                          try {
-                            const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
-                            map[currentVideo.id] = next;
-                            localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
-                          } catch {}
-                          return next;
-                        })}
+                        onClick={() => {
+                          setSyncHintDismissed(true);
+                          setLyricsOffset(o => {
+                            const next = Math.round((o - 0.5) * 10) / 10;
+                            try {
+                              const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
+                              map[currentVideo.id] = next;
+                              localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
+                            } catch {}
+                            return next;
+                          });
+                        }}
                         className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors font-mono"
                         title="Lyrics showing too early — delay by 0.5s"
                       >−</button>
@@ -473,15 +493,18 @@ export default function App() {
                         {lyricsOffset === 0 ? 'sync' : `${lyricsOffset > 0 ? '+' : ''}${lyricsOffset.toFixed(1)}s`}
                       </span>
                       <button
-                        onClick={() => setLyricsOffset(o => {
-                          const next = Math.round((o + 0.5) * 10) / 10;
-                          try {
-                            const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
-                            map[currentVideo.id] = next;
-                            localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
-                          } catch {}
-                          return next;
-                        })}
+                        onClick={() => {
+                          setSyncHintDismissed(true);
+                          setLyricsOffset(o => {
+                            const next = Math.round((o + 0.5) * 10) / 10;
+                            try {
+                              const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
+                              map[currentVideo.id] = next;
+                              localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
+                            } catch {}
+                            return next;
+                          });
+                        }}
                         className="px-1.5 py-0.5 rounded hover:bg-muted hover:text-foreground transition-colors font-mono"
                         title="Lyrics showing too late — advance by 0.5s"
                       >+</button>
@@ -512,7 +535,27 @@ export default function App() {
                       </div>
                     )
                     : lrcLines
-                    ? <LyricsDisplay lines={lrcLines} currentTime={lyricsTime + lyricsOffset} />
+                    ? (
+                      <>
+                        <LyricsDisplay lines={lrcLines} currentTime={lyricsTime + lyricsOffset} />
+                        {lrcLines[0]?.time !== -1 && !syncHintDismissed && (
+                          <div className="flex items-center justify-center gap-2 mt-1">
+                            <button
+                              onClick={handleAutoSync}
+                              className="text-xs px-3 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors"
+                              title="Press this the moment you hear the first word — it will lock the lyrics to that point"
+                            >
+                              ♪ Tap when singing starts
+                            </button>
+                            <button
+                              onClick={() => setSyncHintDismissed(true)}
+                              className="text-xs text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                              title="Dismiss"
+                            >✕</button>
+                          </div>
+                        )}
+                      </>
+                    )
                     : (
                       <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[80px] flex items-center justify-center">
                         <p className="text-xs text-muted-foreground/50">No lyrics found for this song</p>
