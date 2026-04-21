@@ -110,3 +110,21 @@ export async function fetchLyrics(title: string): Promise<LrcLine[] | null> {
     return null;
   }
 }
+
+/**
+ * Quick 2-strategy check used for background playlist scanning.
+ * Returns whether lyrics were found and the lines if so (for caching).
+ */
+export async function checkLyrics(title: string): Promise<{ hasLyrics: boolean; lines: LrcLine[] | null }> {
+  const parsed = parseTitle(title);
+  if (!parsed) return { hasLyrics: false, lines: null };
+  const { artist, track } = parsed;
+  try {
+    const lines =
+      (await lrclibSearch({ track_name: track, artist_name: artist })) ??
+      (await lrclibSearch({ q: `${artist} ${track}` }));
+    return { hasLyrics: lines !== null, lines };
+  } catch {
+    return { hasLyrics: false, lines: null };
+  }
+}
