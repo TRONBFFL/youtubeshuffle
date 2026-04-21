@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { PlaylistInput } from './components/playlist-input';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/youtube-player';
 import { VideoQueue } from './components/video-queue';
@@ -8,7 +8,7 @@ import { ShareToTV } from './components/share-to-tv';
 import { LyricsDisplay } from './components/lyrics-display';
 import { Video } from './types';
 import { fetchPlaylistVideos, shuffleArray } from './utils/youtube-api';
-import { fetchLyrics, checkLyrics, type LrcLine } from './utils/lyrics';
+import { fetchLyrics, type LrcLine } from './utils/lyrics';
 import { toast, Toaster } from 'sonner';
 
 
@@ -37,12 +37,9 @@ export default function App() {
   const [syncHintDismissed, setSyncHintDismissed] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
 
-  // Lyrics-scan state
-  const [playlistKey, setPlaylistKey] = useState(0);
-  const [lyricsHasMap, setLyricsHasMap] = useState<Record<string, boolean>>({});
-  const [lyricsScanProgress, setLyricsScanProgress] = useState<{ done: number; total: number } | null>(null);
-  const [lyricsOnlyFilter, setLyricsOnlyFilter] = useState(false);
-  const scanAbortRef = useRef<{ cancelled: boolean }>({ cancelled: false });
+  const [skipNoLyrics, setSkipNoLyrics] = useState(false);
+  const skipNoLyricsRef = useRef(false);
+  const videosRef = useRef<Video[]>([]);
 
   const handleTogglePlay = () => {
     playerRef.current?.togglePlay();
@@ -59,7 +56,6 @@ export default function App() {
       const shuffled = shuffleArray(fetchedVideos);
       setVideos(shuffled);
       setCurrentIndex(0);
-      setPlaylistKey(k => k + 1);
       toast.success(`Loaded and shuffled ${shuffled.length} videos!`);
     } catch (error: any) {
       const message = error?.message ?? 'Unknown error';
@@ -69,43 +65,25 @@ export default function App() {
     }
   };
 
-  // Filtered queue (only lyrics videos when filter is on)
-  const queueVideos = useMemo(() => {
-    if (!lyricsOnlyFilter) return videos;
-    return videos.filter(v => lyricsHasMap[v.id] === true);
-  }, [videos, lyricsOnlyFilter, lyricsHasMap]);
-
   const currentVideo = videos[currentIndex];
-  const queueIndex = useMemo(() => {
-    if (queueVideos.length === 0) return 0;
-    const i = queueVideos.findIndex(v => v.id === currentVideo?.id);
-    return i >= 0 ? i : 0;
-  }, [queueVideos, currentVideo?.id]);
-
-  const setQueueIndex = (i: number) => {
-    const target = queueVideos[i];
-    if (!target) return;
-    const idx = videos.findIndex(v => v.id === target.id);
-    if (idx >= 0) setCurrentIndex(idx);
-  };
 
   const handleVideoEnd = () => {
-    if (queueIndex < queueVideos.length - 1) {
-      setQueueIndex(queueIndex + 1);
+    if (currentIndex < videos.length - 1) {
+      setCurrentIndex(i => i + 1);
     } else {
       toast.info('Playlist finished!');
     }
   };
 
   const handlePrevious = () => {
-    if (queueIndex > 0) {
-      setQueueIndex(queueIndex - 1);
+    if (currentIndex > 0) {
+      setCurrentIndex(i => i - 1);
     }
   };
 
   const handleNext = () => {
-    if (queueIndex < queueVideos.length - 1) {
-      setQueueIndex(queueIndex + 1);
+    if (currentIndex < videos.length - 1) {
+      setCurrentIndex(i => i + 1);
     } else {
       toast.info('This is the last video in the playlist');
     }
@@ -165,51 +143,8 @@ export default function App() {
     };
   }, [theaterMode]);
 
-  // Background lyrics scan — runs after each new playlist load
-  useEffect(() => {
-    if (videos.length === 0) {
-      setLyricsHasMap({});
-      setLyricsScanProgress(null);
-      setLyricsOnlyFilter(false);
-      return;
-    }
-    const abort = { cancelled: false };
-    scanAbortRef.current = abort;
-    setLyricsHasMap({});
-    setLyricsOnlyFilter(false);
-    setLyricsScanProgress({ done: 0, total: videos.length });
-
-    const snapshot = [...videos]; // capture current playlist
-    (async () => {
-      const BATCH = 3;
-      const map: Record<string, boolean> = {};
-      for (let i = 0; i < snapshot.length; i += BATCH) {
-        if (abort.cancelled) return;
-        const batch = snapshot.slice(i, i + BATCH);
-        await Promise.all(batch.map(async video => {
-          if (abort.cancelled) return;
-          try {
-            const { hasLyrics, lines } = await checkLyrics(video.title);
-            if (abort.cancelled) return;
-            map[video.id] = hasLyrics;
-            // Pre-populate lyrics cache so playback is instant
-            if (lines && !lyricsCacheRef.current.has(video.id)) {
-              lyricsCacheRef.current.set(video.id, lines);
-            }
-          } catch {
-            map[video.id] = false;
-          }
-        }));
-        if (abort.cancelled) return;
-        const done = Math.min(i + BATCH, snapshot.length);
-        setLyricsHasMap({ ...map });
-        setLyricsScanProgress({ done, total: snapshot.length });
-      }
-    })();
-
-    return () => { abort.cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playlistKey]);
+  // Keep videosRef in sync for use in async callbacks
+  useEffect(() => { videosRef.current = videos; }, [videos]);
 
   const handleWallpaperUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -255,16 +190,26 @@ export default function App() {
     }
     // Cache hit — instant display, no pause needed
     if (lyricsCacheRef.current.has(videoId)) {
-      setLrcLines(lyricsCacheRef.current.get(videoId) ?? null);
-      setLyricsLoading(false);
-      // Evict from cache now that it's been consumed into state
+      const cached = lyricsCacheRef.current.get(videoId) ?? null;
       lyricsCacheRef.current.delete(videoId);
+      if (cached === null && skipNoLyricsRef.current && currentIndex < videosRef.current.length - 1) {
+        setCurrentIndex(i => i + 1);
+        return () => {};
+      }
+      setLrcLines(cached);
+      setLyricsLoading(false);
       return () => {};
     }
     setLyricsLoading(true);
     let cancelled = false;
     fetchLyrics(currentVideo.title).then(lines => {
       if (cancelled) return;
+      if (lines === null && skipNoLyricsRef.current && currentIndex < videosRef.current.length - 1) {
+        lyricsPausedRef.current = false;
+        setCurrentIndex(i => i + 1);
+        setLyricsLoading(false);
+        return;
+      }
       setLrcLines(lines);
       setLyricsLoading(false);
       if (lyricsPausedRef.current) {
@@ -279,10 +224,10 @@ export default function App() {
     };
   }, [lyricsEnabled, currentVideo?.id]);
 
-  // Prefetch lyrics for the next 3 upcoming songs
+  // Prefetch lyrics for the next 5 upcoming songs
   useEffect(() => {
     if (!lyricsEnabled || videos.length === 0) return;
-    const upcoming = videos.slice(currentIndex + 1, currentIndex + 4);
+    const upcoming = videos.slice(currentIndex + 1, currentIndex + 6);
     for (const video of upcoming) {
       if (lyricsCacheRef.current.has(video.id)) continue;
       lyricsCacheRef.current.set(video.id, null); // lock against duplicate fetches
@@ -478,6 +423,26 @@ export default function App() {
                   >
                     🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
                   </button>
+                  {lyricsEnabled && (
+                    <button
+                      onClick={() => {
+                        const next = !skipNoLyrics;
+                        skipNoLyricsRef.current = next;
+                        setSkipNoLyrics(next);
+                        if (next && !lyricsLoading && lrcLines === null && currentIndex < videos.length - 1) {
+                          setCurrentIndex(i => i + 1);
+                        }
+                      }}
+                      className={`text-xs transition-colors ${
+                        skipNoLyrics
+                          ? 'text-foreground'
+                          : 'text-muted-foreground/60 hover:text-muted-foreground'
+                      }`}
+                      title={skipNoLyrics ? 'Playing songs with lyrics only' : 'Skip songs without lyrics'}
+                    >
+                      ⏭️ {skipNoLyrics ? 'Lyrics only' : 'Skip no lyrics'}
+                    </button>
+                  )}
                   {lyricsEnabled && lrcLines && lrcLines[0]?.time !== -1 && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                       <button
@@ -584,23 +549,9 @@ export default function App() {
             {/* Video Queue */}
             <div className={wallpaperUrl ? 'bg-card/70 backdrop-blur-md rounded-lg p-4 border' : 'bg-card rounded-lg p-4 border'}>
               <VideoQueue
-                videos={queueVideos}
-                currentIndex={queueIndex}
-                onSelectVideo={setQueueIndex}
-                lyricsHasMap={lyricsHasMap}
-                scanProgress={lyricsScanProgress}
-                lyricsOnlyFilter={lyricsOnlyFilter}
-                onToggleLyricsFilter={(v) => {
-                  setLyricsOnlyFilter(v);
-                  if (v) {
-                    // If current video has no lyrics, jump to first lyrics video
-                    const filtered = videos.filter(vid => lyricsHasMap[vid.id]);
-                    if (filtered.length > 0 && !lyricsHasMap[currentVideo?.id ?? '']) {
-                      const idx = videos.findIndex(vid => vid.id === filtered[0].id);
-                      if (idx >= 0) setCurrentIndex(idx);
-                    }
-                  }
-                }}
+                videos={videos}
+                currentIndex={currentIndex}
+                onSelectVideo={setCurrentIndex}
               />
             </div>
 
