@@ -545,22 +545,31 @@ export default function App() {
                     ? (
                       <>
                         <LyricsDisplay lines={lrcLines} currentTime={lyricsTime + lyricsOffset} />
-                        {lrcLines[0]?.time !== -1 && !syncHintDismissed && (
-                          <div className="flex items-center justify-center gap-2 mt-1">
-                            <button
-                              onClick={handleAutoSync}
-                              className="text-xs px-3 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors"
-                              title="Tap this while the highlighted line is being sung — locks lyrics to that line"
-                            >
-                              ♪ Tap to sync to current line
-                            </button>
-                            <button
-                              onClick={() => setSyncHintDismissed(true)}
-                              className="text-xs text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
-                              title="Dismiss"
-                            >✕</button>
-                          </div>
-                        )}
+                        {lrcLines[0]?.time !== -1 && !syncHintDismissed && (() => {
+                          const adjustedNow = lyricsTime - lyricsOffset;
+                          let activeIdx = 0;
+                          for (let i = 0; i < lrcLines.length; i++) {
+                            if (lrcLines[i].time <= adjustedNow) activeIdx = i;
+                            else break;
+                          }
+                          const activeLine = lrcLines[activeIdx]?.text ?? '';
+                          return (
+                            <div className="flex items-center justify-center gap-2 mt-1">
+                              <button
+                                onClick={handleAutoSync}
+                                className="text-xs px-3 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors max-w-[260px] truncate"
+                                title="Tap this while the highlighted line is being sung — locks lyrics to that line"
+                              >
+                                ♪ {activeLine ? `Tap while singing: "${activeLine}"` : 'Tap to sync to current line'}
+                              </button>
+                              <button
+                                onClick={() => setSyncHintDismissed(true)}
+                                className="text-xs text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors shrink-0"
+                                title="Dismiss"
+                              >✕</button>
+                            </div>
+                          );
+                        })()}
                       </>
                     )
                     : (
