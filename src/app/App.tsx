@@ -34,7 +34,6 @@ export default function App() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsTime, setLyricsTime] = useState(0);
   const [lyricsOffset, setLyricsOffset] = useState(0);
-  const [syncHintDismissed, setSyncHintDismissed] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
 
   const [skipNoLyrics, setSkipNoLyrics] = useState(false);
@@ -98,27 +97,6 @@ export default function App() {
     toast.success('Remaining videos reshuffled!');
   };
 
-  const handleAutoSync = () => {
-    if (!lrcLines || lrcLines[0]?.time === -1 || !currentVideo) return;
-    const playerNow = playerRef.current?.getCurrentTime() ?? 0;
-    // Find which LRC line is currently highlighted (accounting for existing offset)
-    const adjustedNow = playerNow - lyricsOffset;
-    let activeLineIdx = 0;
-    for (let i = 0; i < lrcLines.length; i++) {
-      if (lrcLines[i].time <= adjustedNow) activeLineIdx = i;
-      else break;
-    }
-    const newOffset = Math.round((playerNow - lrcLines[activeLineIdx].time) * 2) / 2;
-    setLyricsOffset(newOffset);
-    try {
-      const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
-      map[currentVideo.id] = newOffset;
-      localStorage.setItem('ytshuffler-lyrics-offsets', JSON.stringify(map));
-    } catch {}
-    setSyncHintDismissed(true);
-    toast.success(`Lyrics synced (offset ${newOffset > 0 ? '+' : ''}${newOffset.toFixed(1)}s)`);
-  };
-
   useEffect(() => {
     if (!wallpaperUrl) {
       setBgScrollY(0);
@@ -175,12 +153,10 @@ export default function App() {
       setLrcLines(null);
       setLyricsTime(0);
       setLyricsLoading(false);
-      setSyncHintDismissed(false);
       return;
     }
     setLrcLines(null);
     setLyricsTime(0);
-    setSyncHintDismissed(false);
     // Load per-song saved offset
     try {
       const map = JSON.parse(localStorage.getItem('ytshuffler-lyrics-offsets') ?? '{}');
@@ -508,34 +484,7 @@ export default function App() {
                     )
                     : lrcLines
                     ? (
-                      <>
-                        <LyricsDisplay lines={lrcLines} currentTime={lyricsTime + lyricsOffset} />
-                        {lrcLines[0]?.time !== -1 && !syncHintDismissed && (() => {
-                          const adjustedNow = lyricsTime - lyricsOffset;
-                          let activeIdx = 0;
-                          for (let i = 0; i < lrcLines.length; i++) {
-                            if (lrcLines[i].time <= adjustedNow) activeIdx = i;
-                            else break;
-                          }
-                          const activeLine = lrcLines[activeIdx]?.text ?? '';
-                          return (
-                            <div className="flex items-center justify-center gap-2 mt-1">
-                              <button
-                                onClick={handleAutoSync}
-                                className="text-xs px-3 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors max-w-[260px] truncate"
-                                title="Tap this while the highlighted line is being sung — locks lyrics to that line"
-                              >
-                                ♪ {activeLine ? `Tap while singing: "${activeLine}"` : 'Tap to sync to current line'}
-                              </button>
-                              <button
-                                onClick={() => setSyncHintDismissed(true)}
-                                className="text-xs text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors shrink-0"
-                                title="Dismiss"
-                              >✕</button>
-                            </div>
-                          );
-                        })()}
-                      </>
+                      <LyricsDisplay lines={lrcLines} currentTime={lyricsTime + lyricsOffset} />
                     )
                     : (
                       <div className="rounded-lg p-4 bg-black/20 backdrop-blur-sm min-h-[80px] flex items-center justify-center">
