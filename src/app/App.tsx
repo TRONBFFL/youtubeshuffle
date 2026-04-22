@@ -398,27 +398,7 @@ export default function App() {
                     }`}
                   >
                     🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
-                  </button>
-                  {lyricsEnabled && (
-                    <button
-                      onClick={() => {
-                        const next = !skipNoLyrics;
-                        skipNoLyricsRef.current = next;
-                        setSkipNoLyrics(next);
-                        if (next && !lyricsLoading && lrcLines === null && currentIndex < videos.length - 1) {
-                          setCurrentIndex(i => i + 1);
-                        }
-                      }}
-                      className={`text-xs transition-colors ${
-                        skipNoLyrics
-                          ? 'text-foreground'
-                          : 'text-muted-foreground/60 hover:text-muted-foreground'
-                      }`}
-                      title={skipNoLyrics ? 'Playing songs with lyrics only' : 'Skip songs without lyrics'}
-                    >
-                      ⏭️ {skipNoLyrics ? 'Lyrics only' : 'Skip no lyrics'}
-                    </button>
-                  )}
+                  
                   {lyricsEnabled && lrcLines && lrcLines[0]?.time !== -1 && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                       <button
