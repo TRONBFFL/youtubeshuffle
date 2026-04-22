@@ -398,7 +398,8 @@ export default function App() {
                     }`}
                   >
                     🎤 {lyricsEnabled ? 'Hide lyrics' : 'Lyrics'}
-                  
+                  </button>
+                  {/* Skip no lyrics button removed */}
                   {lyricsEnabled && lrcLines && lrcLines[0]?.time !== -1 && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                       <button
